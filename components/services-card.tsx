@@ -1,4 +1,4 @@
-import { ServicesJSON, ServicesResponseData } from "@/types";
+import { JSOND, JSONDWithChildren, ServicesResponseData } from "@/types";
 import {
   Card,
   CardContent,
@@ -23,20 +23,64 @@ interface ServiceCardProps {
   response: ServicesResponseData;
 }
 
-const filteredServicesJson = (
-  servicesJson: ServicesJSON[],
-  serviceId: number
-) => {
-  return servicesJson.filter((service) => service.service_id.id === serviceId);
-};
+function processAndFilterData(items: JSOND[], serviceId: number) {
+  function groupChildrenByParent(items: JSOND[]) {
+    let groupedItems: JSONDWithChildren[] = [];
+
+    items.forEach((parentItem) => {
+      if (parentItem.group === "parent") {
+        let parentWithChildren = { ...parentItem, children: [] };
+        items.forEach((childItem) => {
+          if (
+            childItem.group === "child" &&
+            childItem.parent === parentItem.id.toString()
+          ) {
+            parentWithChildren.children.push(childItem);
+          }
+        });
+        groupedItems.push(parentWithChildren);
+      }
+    });
+
+    return groupedItems;
+  }
+
+  let groupedData = groupChildrenByParent(items);
+
+  let filteredData: JSONDWithChildren[] = [];
+
+  if (serviceId === 1) {
+    filteredData = groupedData.filter((parent) => {
+      return (
+        parent.description.startsWith("Foto") ||
+        parent.description.startsWith("Video")
+      );
+    });
+  } else if (serviceId === 2) {
+    filteredData = groupedData.filter((parent) => {
+      return (
+        parent.description.startsWith("TTD") ||
+        parent.description.startsWith("Dokumen")
+      );
+    });
+  } else if (serviceId === 3) {
+    filteredData = groupedData.filter((parent) => {
+      return parent.description.startsWith("BPKB");
+    });
+  }
+
+  return filteredData;
+}
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ response }) => {
   const data = response.data;
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Lengkapi data di bawah ini</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-center">
+          Lengkapi data di bawah ini
+        </CardTitle>
+        <CardDescription className="text-center">
           Silakan isi prasyarat berikut ini. Jika sudah selesai, klik tombol{" "}
           <span className="font-bold">Submit</span>
         </CardDescription>
@@ -46,23 +90,29 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ response }) => {
           {data.services.map((service) => (
             <Dialog key={service.id}>
               <DialogTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className="flex gap-2 justify-start"
-                >
-                  <div className="w-4 h-4 bg-primary rounded-full" />
-                  {service.service_name}
+                <Button variant={"outline"}>
+                  {service.service_name.startsWith("Foto") ? (
+                    <p>📷 {service.service_name}</p>
+                  ) : service.service_name.startsWith("Tanda Tangan") ? (
+                    <p>✍🏻 {service.service_name}</p>
+                  ) : service.service_name.startsWith("BPKB") ? (
+                    <p>📄 {service.service_name}</p>
+                  ) : (
+                    <p>{service.service_name}</p>
+                  )}
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader>{service.service_name}</DialogHeader>
-                <DialogDescription className="text-red-500 text-center">
-                  * Mandatory (harus dilengkapi)
-                </DialogDescription>
+                <DialogHeader>
+                  <DialogTitle>{service.service_name}</DialogTitle>
+                  <DialogDescription className="text-red-500 text-center">
+                    * Mandatory (harus dilengkapi)
+                  </DialogDescription>
+                </DialogHeader>
                 <ScrollArea className="flex flex-col gap-2 h-[65vh]">
                   <ServicesForm
-                    services={filteredServicesJson(
-                      data.services_json,
+                    services={processAndFilterData(
+                      data.services_json[0].json,
                       service.id
                     )}
                   />
@@ -74,41 +124,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ response }) => {
               </DialogContent>
             </Dialog>
           ))}
-          {/* {data.services_json.map((service) => (
-            <div key={service.service_id.id}>
-              {service.json.map((item) => (
-                <div key={item.id}>
-                  {item.group === "parent" && (
-                    <Dialog key={item.id}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className="flex gap-2 justify-start"
-                        >
-                          <div className="w-4 h-4 bg-primary rounded-full" />
-                          {item.description}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>{item.description}</DialogHeader>
-                        <DialogDescription className="text-red-500 text-center">
-                          * Mandatory (harus dilengkapi)
-                        </DialogDescription>
-                        <ScrollArea className="flex flex-col gap-2 h-[600px]">
-                          <ServicesForm
-                            services={filteredServicesJson(
-                              data.services_json,
-                              item.id
-                            )}
-                          />
-                        </ScrollArea>
-                      </DialogContent>
-                    </Dialog>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))} */}
         </div>
       </CardContent>
     </Card>

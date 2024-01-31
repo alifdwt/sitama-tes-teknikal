@@ -36,3 +36,18 @@ export interface JSOND {
   remark: null;
   value: string;
 }
+
+export interface JSONDWithChildren {
+  id: number;
+  group: string;
+  parent_description: any;
+  description: string;
+  mandatory: number;
+  sequence: number;
+  parent: string;
+  type: string;
+  is_multiple: number;
+  remark: null;
+  value: string;
+  children: JSOND[];
+}
